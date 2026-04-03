@@ -1,5 +1,8 @@
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "./auth.config";
 import { NextResponse } from "next/server";
+
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
@@ -17,13 +20,18 @@ export default auth((req) => {
 
   // Protected app routes
   const isAppRoute =
-    pathname.startsWith("/(app)") ||
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/assessment") ||
     pathname.startsWith("/practice") ||
-    pathname.startsWith("/settings");
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/welcome") ||
+    pathname.startsWith("/plans");
 
-  const isApiRoute = pathname.startsWith("/api/") && !pathname.startsWith("/api/auth");
+  const isApiRoute =
+    pathname.startsWith("/api/") &&
+    !pathname.startsWith("/api/auth") &&
+    !pathname.startsWith("/api/internal") &&
+    !pathname.startsWith("/api/webhooks");
 
   if ((isAppRoute || isApiRoute) && !isAuthed) {
     const loginUrl = new URL("/login", req.url);
@@ -40,7 +48,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|public).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|public).*)"],
 };

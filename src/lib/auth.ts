@@ -5,6 +5,7 @@ import Google from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { authConfig } from "@/auth.config";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -12,12 +13,8 @@ const credentialsSchema = z.object({
 });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt" },
-  pages: {
-    signIn: "/login",
-    error: "/login",
-  },
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -56,17 +53,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-      }
-      return token;
-    },
+    ...authConfig.callbacks,
     async session({ session, token }) {
       if (token?.id && session.user) {
         session.user.id = token.id as string;
 
-        // Attach onboarding status
+        // Attach onboarding status — only runs in API routes, not proxy
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
           select: { onboardingDone: true },
